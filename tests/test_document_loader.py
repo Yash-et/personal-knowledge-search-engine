@@ -1,16 +1,15 @@
 from pathlib import Path
 import pytest
 from pypdf import PdfWriter
+from src.ingestion.document_loader import (
+    DocumentLoadError,
+    load_document,
+)
 from pypdf.generic import (
     DecodedStreamObject,
     DictionaryObject,
     NameObject,
 )
-from src.ingestion.document_loader import (
-    DocumentLoadError,
-    load_document,
-)
-
 def test_load_txt_file(tmp_path: Path):
     file_path = tmp_path / "notes.txt"
     file_path.write_text(
@@ -96,11 +95,13 @@ def test_extension_is_case_insensitive(tmp_path: Path):
 
     assert result["file_type"] == "txt"
     assert result["text"] == "Uppercase extension works."
-    
+
 def test_load_pdf_with_extractable_text(tmp_path: Path):
     file_path = tmp_path / "sample.pdf"
+
     writer = PdfWriter()
     page = writer.add_blank_page(width=300, height=300)
+
     # Define a standard font for the PDF text content.
     font = DictionaryObject()
     font.update(
