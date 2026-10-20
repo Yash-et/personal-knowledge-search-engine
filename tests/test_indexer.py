@@ -76,3 +76,50 @@ def test_indexing_different_documents_keeps_both_sources(
 
     assert sources == {"first.txt", "second.txt"}
     assert store.count() == 2
+
+def test_reindexing_edited_document_removes_stale_chunks(
+    tmp_path: Path,
+):
+    file_path = tmp_path / "editable.txt"
+
+    file_path.write_text(
+        "Python is a programming language. " * 20,
+        encoding="utf-8",
+    )
+
+    store = VectorStore(tmp_path / "vectors")
+    model = FakeEmbeddingModel()
+
+    first = index_document(
+        file_path,
+        model,
+        store,
+        chunk_size=30,
+        chunk_overlap=5,
+    )
+
+    assert first["chunks_stored"] > 1
+    old_count = store.count()
+
+    file_path.write_text(
+        "Updated document content.",
+        encoding="utf-8",
+    )
+
+    second = index_document(
+        file_path,
+        model,
+        store,
+        chunk_size=30,
+        chunk_overlap=5,
+    )
+
+    assert second["chunks_stored"] == 1
+    assert store.count() == 1
+    assert store.count() < old_count
+
+    results = store.search([1.0, 0.0, 0.0], n_results=5)
+
+    assert len(results) == 1
+    assert results[0]["text"] == "Updated document content."
+    assert results[0]["metadata"]["source"] == "editable.txt"

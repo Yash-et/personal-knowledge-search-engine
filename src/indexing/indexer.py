@@ -46,7 +46,11 @@ def index_document(
         [chunk["text"] for chunk in chunks]
     )
 
-    stored_count = vector_store.add_chunks(chunks, embeddings)
+    stored_count = vector_store.replace_source(
+        source=document["source"],
+        chunks=chunks,
+        embeddings=embeddings,
+    )
 
     return {
         "source": document["source"],
