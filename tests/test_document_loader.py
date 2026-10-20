@@ -1,6 +1,11 @@
 from pathlib import Path
 import pytest
 from pypdf import PdfWriter
+from pypdf.generic import (
+    DecodedStreamObject,
+    DictionaryObject,
+    NameObject,
+)
 from src.ingestion.document_loader import (
     DocumentLoadError,
     load_document,
@@ -91,3 +96,47 @@ def test_extension_is_case_insensitive(tmp_path: Path):
 
     assert result["file_type"] == "txt"
     assert result["text"] == "Uppercase extension works."
+    
+def test_load_pdf_with_extractable_text(tmp_path: Path):
+    file_path = tmp_path / "sample.pdf"
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=300, height=300)
+    # Define a standard font for the PDF text content.
+    font = DictionaryObject()
+    font.update(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+        }
+    )
+    font_reference = writer._add_object(font)
+
+    font_resources = DictionaryObject()
+    font_resources[NameObject("/F1")] = font_reference
+
+    resources = DictionaryObject()
+    resources[NameObject("/Font")] = font_resources
+    page[NameObject("/Resources")] = resources
+
+    # Add actual text to the PDF page.
+    content = DecodedStreamObject()
+    content.set_data(
+        b"BT /F1 12 Tf 72 200 Td (Hello from PDF) Tj ET"
+    )
+    page[NameObject("/Contents")] = writer._add_object(content)
+
+    with file_path.open("wb") as pdf_file:
+        writer.write(pdf_file)
+
+    result = load_document(file_path)
+
+    assert result["source"] == "sample.pdf"
+    assert result["file_type"] == "pdf"
+    assert "Hello from PDF" in result["text"]
+    assert result["pages"] == [
+        {
+            "page_number": 1,
+            "text": "Hello from PDF",
+        }
+    ]
