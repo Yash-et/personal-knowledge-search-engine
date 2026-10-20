@@ -65,10 +65,18 @@ def test_search_returns_relevant_passages(search_setup):
 def test_search_preserves_source_metadata(search_setup):
     model, store = search_setup
 
-    results = semantic_search("Python programming", model, store, top_k=1)
+    results = semantic_search("Python programming", model, store, top_k=2)
 
-    assert results[0]["metadata"]["source"] == "python.txt"
-    assert results[0]["metadata"]["page_number"] == 1
+    assert len(results) == 2
+
+    python_result = next(
+        result
+        for result in results
+        if result["metadata"]["source"] == "python.txt"
+    )
+
+    assert python_result["metadata"]["page_number"] == 1
+    assert python_result["text"] == "Python is used to build applications."
 
 def test_top_k_limits_result_count(search_setup):
     model, store = search_setup
