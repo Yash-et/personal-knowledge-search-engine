@@ -1,17 +1,10 @@
-
 from pathlib import Path
 from typing import TypedDict
-
 from pypdf import PdfReader
-
-
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md"}
-
-
 class DocumentPage(TypedDict):
     page_number: int
     text: str
-
 
 class LoadedDocument(TypedDict):
     source: str
@@ -19,10 +12,8 @@ class LoadedDocument(TypedDict):
     text: str
     pages: list[DocumentPage]
 
-
 class DocumentLoadError(Exception):
     """Raised when a document cannot be loaded or contains no usable text."""
-
 
 def _extract_pdf(path: Path) -> list[DocumentPage]:
     """Extract text page by page from a PDF."""
@@ -48,7 +39,6 @@ def _extract_pdf(path: Path) -> list[DocumentPage]:
             f"Could not read PDF '{path.name}': {exc}"
         ) from exc
 
-
 def _extract_text_file(path: Path) -> list[DocumentPage]:
     """Read a UTF-8 text or Markdown file."""
     try:
@@ -63,7 +53,6 @@ def _extract_text_file(path: Path) -> list[DocumentPage]:
         ) from exc
 
     return [{"page_number": 1, "text": text}] if text else []
-
 
 def load_document(file_path: str | Path) -> LoadedDocument:
     """
