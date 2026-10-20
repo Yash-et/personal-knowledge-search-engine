@@ -159,3 +159,115 @@ class VectorStore:
     def count(self) -> int:
         """Return the number of stored chunks."""
         return self.collection.count()
+    
+    def delete_source(self, source: str) -> int:
+        """Delete all indexed chunks belonging to one source filename."""
+        if not isinstance(source, str) or not source.strip():
+            raise ValueError("source cannot be empty.")
+
+        existing = self.collection.get(
+            where={"source": source},
+            include=["metadatas"],
+        )
+
+        ids = existing["ids"]
+
+        if ids:
+            self.collection.delete(ids=ids)
+
+        return len(ids)
+
+    def replace_source(
+        self,
+        source: str,
+        chunks: Sequence[dict],
+        embeddings: Sequence[Sequence[float]],
+    ) -> int:
+        """
+        Replace all indexed chunks for a source.
+
+        Validate the new content first so invalid input cannot delete
+        previously indexed records.
+        """
+        if not isinstance(source, str) or not source.strip():
+            raise ValueError("source cannot be empty.")
+
+        if len(chunks) != len(embeddings):
+            raise ValueError(
+                "The number of chunks must match the number of embeddings."
+            )
+
+        for chunk in chunks:
+            if chunk.get("source") != source:
+                raise ValueError(
+                    "Every chunk must belong to the source being replaced."
+                )
+
+        # Reuse add_chunks validation without modifying the real collection.
+        # Validate chunk structure, metadata, and embedding values first.
+        validated_chunks = []
+        validated_embeddings = []
+
+        for chunk, embedding in zip(chunks, embeddings):
+            text = chunk.get("text")
+            page_number = chunk.get("page_number")
+            chunk_id = chunk.get("chunk_id")
+
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError("Every chunk must contain non-empty text.")
+            if not isinstance(page_number, int) or page_number < 1:
+                raise ValueError("Every chunk must have a valid page_number.")
+            if not isinstance(chunk_id, int) or chunk_id < 0:
+                raise ValueError("Every chunk must have a valid chunk_id.")
+            if not embedding:
+                raise ValueError("Every embedding must contain values.")
+
+            vector = [float(value) for value in embedding]
+
+            import math
+
+            if any(not math.isfinite(value) for value in vector):
+                raise ValueError("Embeddings must contain only finite values.")
+
+            validated_chunks.append(chunk)
+            validated_embeddings.append(vector)
+
+        dimensions = {
+            len(vector) for vector in validated_embeddings
+        }
+
+        if len(dimensions) > 1:
+            raise ValueError("All embeddings must have the same dimensions.")
+
+        if validated_embeddings:
+            current_count = self.collection.count()
+
+            if current_count:
+                existing = self.collection.get(
+                    limit=current_count,
+                    include=["embeddings"],
+                )
+                existing_dimensions = {
+                    len(vector)
+                    for vector in existing["embeddings"]
+                    if vector is not None
+                }
+
+                if (
+                    existing_dimensions
+                    and dimensions
+                    and not dimensions.issubset(existing_dimensions)
+                ):
+                    raise ValueError(
+                        "Embedding dimensions do not match the collection."
+                    )
+
+        self.delete_source(source)
+
+        if not validated_chunks:
+            return 0
+
+        return self.add_chunks(
+            validated_chunks,
+            validated_embeddings,
+        )

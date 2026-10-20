@@ -129,3 +129,108 @@ def test_invalid_chunk_identity_is_rejected():
 
     with pytest.raises(ValueError, match="chunk_id"):
         VectorStore.make_chunk_id("notes.txt", 1, -1, "Some text")
+
+def test_delete_source_removes_only_matching_chunks(
+    store, sample_chunks, sample_embeddings
+):
+    store.add_chunks(sample_chunks, sample_embeddings)
+
+    deleted_count = store.delete_source("python.txt")
+
+    assert deleted_count == 1
+    assert store.count() == 1
+
+    remaining = store.search([0.0, 1.0, 0.0], n_results=2)
+    assert len(remaining) == 1
+    assert remaining[0]["metadata"]["source"] == "search.pdf"
+
+
+def test_delete_missing_source_returns_zero(store):
+    assert store.delete_source("missing.txt") == 0
+
+def test_delete_source_rejects_empty_name(store):
+    with pytest.raises(ValueError, match="source"):
+        store.delete_source(" ")
+
+def test_replace_source_removes_stale_chunks(
+    store, sample_chunks, sample_embeddings
+):
+    store.add_chunks(sample_chunks, sample_embeddings)
+
+    replacement_chunks = [
+        {
+            "chunk_id": 0,
+            "text": "Updated Python documentation.",
+            "source": "python.txt",
+            "page_number": 1,
+        }
+    ]
+
+    replacement_embeddings = [[0.0, 0.0, 1.0]]
+
+    stored = store.replace_source(
+        "python.txt",
+        replacement_chunks,
+        replacement_embeddings,
+    )
+
+    assert stored == 1
+    assert store.count() == 2
+
+    results = store.search([0.0, 0.0, 1.0], n_results=2)
+    python_results = [
+        result
+        for result in results
+        if result["metadata"]["source"] == "python.txt"
+    ]
+
+    assert len(python_results) == 1
+    assert python_results[0]["text"] == "Updated Python documentation."
+
+def test_replace_source_with_empty_chunks_deletes_source(
+    store, sample_chunks, sample_embeddings
+):
+    store.add_chunks(sample_chunks, sample_embeddings)
+
+    assert store.replace_source("python.txt", [], []) == 0
+    assert store.count() == 1
+
+def test_replace_source_rejects_mismatched_sources(
+    store, sample_embeddings
+):
+    chunks = [
+        {
+            "chunk_id": 0,
+            "text": "Other document.",
+            "source": "other.txt",
+            "page_number": 1,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="belong to the source"):
+        store.replace_source("python.txt", chunks, sample_embeddings[:1])
+
+    assert store.count() == 0
+
+def test_replace_source_validation_preserves_existing_data(
+    store, sample_chunks, sample_embeddings
+):
+    store.add_chunks(sample_chunks, sample_embeddings)
+
+    invalid_chunks = [
+        {
+            "chunk_id": 0,
+            "text": " ",
+            "source": "python.txt",
+            "page_number": 1,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="non-empty text"):
+        store.replace_source(
+            "python.txt",
+            invalid_chunks,
+            [[1.0, 0.0, 0.0]],
+        )
+
+    assert store.count() == 2
