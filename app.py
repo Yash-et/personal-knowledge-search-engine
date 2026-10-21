@@ -6,6 +6,7 @@ from src.rag.answer_generator import generate_answer
 from src.search.semantic_search import semantic_search
 from src.storage.vector_store import VectorStore
 from src.ui_helpers import save_uploaded_file
+
 # Project paths
 PROJECT_ROOT = Path(__file__).resolve().parent
 DOCUMENTS_DIR = PROJECT_ROOT / "data" / "documents"
@@ -29,17 +30,6 @@ def get_embedding_model():
 def get_vector_store():
     """Reuse the persistent local ChromaDB collection."""
     return VectorStore(persist_directory=VECTOR_DB_DIR)
-
-def save_uploaded_file(uploaded_file) -> Path:
-    """Save an uploaded document to the local document directory."""
-    DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Streamlit upload names are reduced to a filename, not a path.
-    filename = Path(uploaded_file.name).name
-    destination = DOCUMENTS_DIR / filename
-    destination.write_bytes(uploaded_file.getvalue())
-
-    return destination
 
 def render_citations(citations):
     """Display source references returned by the RAG pipeline."""
