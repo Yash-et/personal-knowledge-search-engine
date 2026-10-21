@@ -5,7 +5,7 @@ from src.indexing.indexer import index_document
 from src.rag.answer_generator import generate_answer
 from src.search.semantic_search import semantic_search
 from src.storage.vector_store import VectorStore
-
+from src.ui_helpers import save_uploaded_file
 # Project paths
 PROJECT_ROOT = Path(__file__).resolve().parent
 DOCUMENTS_DIR = PROJECT_ROOT / "data" / "documents"
@@ -114,7 +114,10 @@ def main():
 
                 for uploaded_file in uploaded_files:
                     try:
-                        saved_path = save_uploaded_file(uploaded_file)
+                        saved_path = save_uploaded_file(
+                            uploaded_file,
+                            DOCUMENTS_DIR,
+                            )
 
                         result = index_document(
                             file_path=saved_path,

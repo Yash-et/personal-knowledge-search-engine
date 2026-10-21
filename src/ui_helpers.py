@@ -1,8 +1,5 @@
-
 from pathlib import Path
-
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md"}
-
 
 def save_uploaded_file(uploaded_file, documents_dir: str | Path) -> Path:
     """Validate and save an uploaded document using only its filename."""
