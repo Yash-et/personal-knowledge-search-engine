@@ -15,8 +15,9 @@ env/
 !.env.example
 
 # Local documents and vector database
-data/documents/*
-data/chroma_db/*
+data/documents/
+data/chroma_db/
+data/vector_db/
 !data/documents/.gitkeep
 !data/chroma_db/.gitkeep
 
