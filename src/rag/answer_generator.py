@@ -92,6 +92,7 @@ USER QUESTION:
             },
             {"role": "user", "content": prompt},
         ],
+        options={"num_ctx": 2048},
     )
 
     answer = response.message.content.strip()
