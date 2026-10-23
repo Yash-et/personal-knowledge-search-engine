@@ -156,6 +156,42 @@ class VectorStore:
 
         return results
 
+    def list_sources(self) -> list[dict]:
+        """Return indexed source filenames and their passage counts."""
+        total = self.collection.count()
+
+        if total == 0:
+            return []
+
+        records = self.collection.get(
+            limit=total,
+            include=["metadatas"],
+        )
+
+        source_counts: dict[str, int] = {}
+
+        for metadata in records["metadatas"]:
+            if not metadata:
+                continue
+
+            source = metadata.get("source")
+
+            if not isinstance(source, str) or not source.strip():
+                continue
+
+            source_counts[source] = source_counts.get(source, 0) + 1
+
+        return [
+            {
+                "source": source,
+                "passage_count": count,
+            }
+            for source, count in sorted(
+                source_counts.items(),
+                key=lambda item: item[0].casefold(),
+            )
+        ]
+    
     def count(self) -> int:
         """Return the number of stored chunks."""
         return self.collection.count()
