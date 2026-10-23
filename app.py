@@ -99,7 +99,8 @@ def render_document_library(vector_store):
 
     st.dataframe(
         rows,
-        use_container_width=True,
+        width="stretch",
+        #use_container_width=True,
         hide_index=True,
     )
 
