@@ -53,6 +53,67 @@ def render_citations(citations):
             f"- **[{reference}]** `{source}` — {location}"
         )
 
+
+def render_document_library(vector_store):
+    """Display indexed documents and their passage counts."""
+    st.subheader("Indexed documents")
+
+    try:
+        sources = vector_store.list_sources()
+    except Exception as exc:
+        st.error(f"Could not load the document library: {exc}")
+        return
+
+    if not sources:
+        st.info("No documents have been indexed yet.")
+        return
+
+    total_passages = sum(
+        item["passage_count"] for item in sources
+    )
+
+    metric_col, passage_col = st.columns(2)
+
+    with metric_col:
+        st.metric("Indexed documents", len(sources))
+
+    with passage_col:
+        st.metric("Indexed passages", total_passages)
+
+    rows = []
+
+    for item in sources:
+        filename = item["source"]
+        local_path = DOCUMENTS_DIR / filename
+
+        rows.append(
+            {
+                "Document": filename,
+                "Passages": item["passage_count"],
+                "Local file": (
+                    "Available" if local_path.is_file()
+                    else "Missing"
+                ),
+            }
+        )
+
+    st.dataframe(
+        rows,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    missing_count = sum(
+        1 for row in rows if row["Local file"] == "Missing"
+    )
+
+    if missing_count:
+        st.warning(
+            f"{missing_count} indexed document(s) no longer have "
+            "a matching file in data/documents/. Their indexed "
+            "passages remain available for search."
+        )
+
 def main():
     st.title("📚 Personal Knowledge Search")
     st.caption(
@@ -174,10 +235,16 @@ def main():
 
     st.divider()
 
-    search_tab, ask_tab = st.tabs(
-        ["🔎 Semantic Search", "💬 Ask Your Documents"]
+    library_tab,search_tab, ask_tab = st.tabs(
+        [
+            "📚 Document Library",
+            "🔎 Semantic Search", 
+            "💬 Ask Your Documents"
+        ]
     )
-
+    with library_tab:
+        render_document_library(vector_store)
+        
     with search_tab:
         st.subheader("Find relevant passages")
 
