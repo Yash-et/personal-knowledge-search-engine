@@ -1,5 +1,5 @@
-# personal-knowledge-search-engine\
-
+# PKS-engine
+PKS = personal-knowledge-search
 # Application Working 
 
 <img width="1920" height="1080" alt="Screenshot (6903)" src="https://github.com/user-attachments/assets/295d0946-04ea-4834-8df7-45bce420e174" />
