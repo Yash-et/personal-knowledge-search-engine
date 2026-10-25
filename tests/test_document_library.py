@@ -68,3 +68,28 @@ def test_list_sources_is_sorted_case_insensitively(tmp_path):
         "beta.txt",
         "zebra.txt",
     ]
+
+def test_removing_source_preserves_other_documents(tmp_path):
+    store = VectorStore(persist_directory=tmp_path / "vector_db")
+
+    chunks = [
+        make_chunk("remove-me.txt", 0, "Passage to remove"),
+        make_chunk("keep-me.txt", 0, "Passage to preserve"),
+        make_chunk("remove-me.txt", 1, "Second passage to remove"),
+    ]
+
+    embeddings = [
+        [1.0, 0.0],
+        [0.0, 1.0],
+        [0.8, 0.2],
+    ]
+
+    store.add_chunks(chunks, embeddings)
+
+    removed_count = store.delete_source("remove-me.txt")
+
+    assert removed_count == 2
+    assert store.count() == 1
+    assert store.list_sources() == [
+        {"source": "keep-me.txt", "passage_count": 1}
+    ]

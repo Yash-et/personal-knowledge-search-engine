@@ -54,9 +54,14 @@ def render_citations(citations):
         )
 
 
+
 def render_document_library(vector_store):
-    """Display indexed documents and their passage counts."""
+    """Display indexed documents and safely manage indexed sources."""
     st.subheader("Indexed documents")
+
+    notice = st.session_state.pop("library_notice", None)
+    if notice:
+        st.success(notice)
 
     try:
         sources = vector_store.list_sources()
@@ -100,7 +105,6 @@ def render_document_library(vector_store):
     st.dataframe(
         rows,
         width="stretch",
-        #use_container_width=True,
         hide_index=True,
     )
 
@@ -114,6 +118,65 @@ def render_document_library(vector_store):
             "a matching file in data/documents/. Their indexed "
             "passages remain available for search."
         )
+
+    st.divider()
+    st.subheader("Manage indexed documents")
+
+    st.caption(
+        "Removing a document from the index does not delete "
+        "its original file."
+    )
+
+    with st.form("remove_document_form"):
+        selected_source = st.selectbox(
+            "Document to remove",
+            options=sources,
+            format_func=lambda item: (
+                f"{item['source']} "
+                f"({item['passage_count']} passages)"
+            ),
+            key="document_to_remove",
+        )
+
+        confirmed = st.checkbox(
+            "I confirm that I want to remove this document's "
+            "indexed passages.",
+            key="confirm_document_removal",
+        )
+
+        submitted = st.form_submit_button(
+            "Remove from index",
+            type="secondary",
+        )
+
+    if submitted:
+        if not confirmed:
+            st.warning(
+                "Please confirm removal before continuing."
+            )
+        else:
+            try:
+                removed_count = vector_store.delete_source(
+                    selected_source["source"]
+                )
+
+                if removed_count:
+                    st.session_state["library_notice"] = (
+                        f"Removed {removed_count} indexed passage(s) "
+                        f"from '{selected_source['source']}'. "
+                        "The original file was preserved."
+                    )
+                    st.rerun()
+                else:
+                    st.warning(
+                        "No indexed passages were found for "
+                        "that document. Refresh the library."
+                    )
+
+            except Exception as exc:
+                st.error(
+                    f"Could not remove the document from the index: {exc}"
+                )
 
 def main():
     st.title("📚 Personal Knowledge Search")
