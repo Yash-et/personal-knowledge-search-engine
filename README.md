@@ -1,9 +1,271 @@
-# PKS-engine
-PKS = personal-knowledge-search
-# Application Working 
+# PKS Engine — Personal Knowledge Search
 
-<img width="1920" height="1080" alt="Screenshot (6903)" src="https://github.com/user-attachments/assets/295d0946-04ea-4834-8df7-45bce420e174" />
-<h3 align="center">Streamlit UI Personal Knowledge Search </h3>
+**PKS = Personal Knowledge Search**
 
-<img width="1920" height="1080" alt="Screenshot (6908)" src="https://github.com/user-attachments/assets/6a171ede-2564-4084-ad09-3a52db96fcf4" />
-<h3 align="center">Semantic Search </h3>
+A local-first personal knowledge search engine that lets you index your documents, search their content semantically, and ask questions using retrieval-augmented generation (RAG).
+
+The project combines document processing, local embeddings, persistent vector storage, semantic retrieval, and a local large language model in a Streamlit interface.
+
+## Application Screenshots
+
+### Main Application
+
+![PKS Engine — Streamlit application](https://github.com/user-attachments/assets/295d0946-04ea-4834-8df7-45bce420e174)
+
+### Semantic Search
+
+![PKS Engine — Semantic Search](https://github.com/user-attachments/assets/6a171ede-2564-4084-ad09-3a52db96fcf4)
+
+## Features
+
+- **Document ingestion:** Load supported PDF, TXT, and Markdown documents.
+- **Text chunking:** Split documents into smaller passages suitable for retrieval.
+- **Local embeddings:** Convert text into numerical representations using Sentence Transformers.
+- **Persistent vector storage:** Store and retrieve document passages with ChromaDB.
+- **Semantic search:** Find relevant passages based on meaning rather than exact keyword matches.
+- **Ask Your Documents:** Generate answers using retrieved document passages through Ollama.
+- **Source citations:** Display source filenames and page information with generated answers when available.
+- **Document Library:** View indexed documents and their passage counts.
+- **Document removal:** Remove a selected document's passages from the index, with confirmation.
+- **Re-indexing:** Replace previously indexed passages when a document changes.
+- **Local model inference:** Run the language model locally using Ollama.
+- **Automated tests:** Validate core functionality with pytest.
+
+## Technology Stack
+
+| Component | Technology |
+|---|---|
+| User interface | Streamlit |
+| Programming language | Python |
+| Document parsing | pypdf |
+| Text embeddings | Sentence Transformers |
+| Embedding model | `all-MiniLM-L6-v2` |
+| Vector database | ChromaDB |
+| Local language model runtime | Ollama |
+| Language model | `llama3.2:3b` |
+| Testing | pytest |
+
+Dependencies are pinned in `requirements.txt` to make environment setup more reproducible.
+
+## How It Works
+
+The application follows a retrieval-augmented generation workflow.
+
+1. **Load:** Read a supported document and extract its text and metadata.
+2. **Chunk:** Divide the extracted text into smaller passages while preserving source and page information.
+3. **Embed:** Generate embeddings for the passages.
+4. **Index:** Store the passages, metadata, and embeddings in a persistent ChromaDB collection.
+5. **Retrieve:** Convert a search query into an embedding and retrieve semantically relevant passages.
+6. **Generate:** For document questions, provide retrieved passages to the local language model through Ollama.
+7. **Cite:** Present source information alongside the generated answer when available.
+
+```text
+PDF / TXT / Markdown
+        |
+        v
+  Document Loader
+        |
+        v
+    Text Chunker
+        |
+        v
+ Sentence Transformers
+        |
+        v
+ Persistent ChromaDB
+        |
+        +----------------------+
+        |                      |
+        v                      v
+  Semantic Search       Ask Your Documents
+                               |
+                               v
+                         Ollama LLM
+                               |
+                               v
+                      Answer with Sources
+```
+
+## Requirements
+
+Before running the project, install or prepare:
+
+- Python 3.11
+- Git
+- Ollama
+- The Ollama model `llama3.2:3b`
+
+The project has been developed and tested in a Python virtual environment on Windows. Other operating systems may require small adjustments to the commands.
+
+## Installation on Windows
+
+### 1. Clone the repository
+
+```powershell
+git clone https://github.com/Yash-et/personal-knowledge-search-engine
+cd personal-knowledge-search-engine
+```
+
+### 2. Create a virtual environment
+
+```powershell
+py -3.11 -m venv .venv
+```
+
+Activate it:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation scripts, you can run the environment's Python directly instead:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### 3. Install dependencies
+
+With the virtual environment activated:
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Verify dependency consistency:
+
+```powershell
+python -m pip check
+```
+
+### 4. Install and prepare Ollama
+
+Install Ollama from the official website:
+
+https://ollama.com/download
+
+Download the model used by the project:
+
+```powershell
+ollama pull llama3.2:3b
+```
+
+Confirm that the model is available:
+
+```powershell
+ollama list
+```
+
+Ensure the Ollama service is running before using the document-question-answering feature. Depending on your installation, Ollama may already be running in the background.
+
+### 5. Start the application
+
+From the repository root, with the virtual environment activated:
+
+```powershell
+python -m streamlit run app.py
+```
+
+Streamlit will display a local URL in the terminal, usually:
+
+```text
+http://localhost:8501
+```
+
+Open that URL in your browser.
+
+## Using the Application
+
+### Document Library
+
+Use the Document Library to inspect indexed sources and their passage counts.
+
+- Review which documents have been indexed.
+- Check whether the original local file is available.
+- Remove a document from the index after confirming the action.
+- Re-index a document after changing its contents.
+
+Re-indexing replaces the existing passages for that source instead of intentionally adding a second copy of the same source's passages.
+
+### Semantic Search
+
+Enter a query to retrieve passages that are semantically relevant to the query. Review the returned text and source metadata to find the information you need.
+
+### Ask Your Documents
+
+Ask a question about your indexed documents. The application retrieves relevant passages and uses the local Ollama model to generate an answer based on the retrieved context.
+
+Check the displayed source citations against the original documents when accuracy is important. Retrieval-based answers can still be incomplete or incorrect.
+
+## Project Structure
+
+```text
+personal-knowledge-search-engine/
+├── app.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+├── .streamlit/
+│   └── config.toml
+├── data/
+│   ├── documents/       # Local source documents
+│   └── vector_db/       # Local persistent vector database
+├── src/
+│   ├── ingestion/       # Document loading and text extraction
+│   ├── chunking/        # Text chunking
+│   ├── embeddings/      # Embedding model integration
+│   ├── storage/         # ChromaDB operations
+│   ├── indexing/        # Document indexing pipeline
+│   ├── search/          # Semantic retrieval
+│   ├── rag/             # RAG answer generation
+│   └── ui_helpers.py    # Shared UI helpers
+└── tests/               # Automated tests
+```
+
+The `data/` directories are used for local application data. They are not intended to contain personal documents or generated vector database files in the public Git repository.
+
+## Running Tests
+
+Run the complete test suite from the repository root:
+
+```powershell
+python -m pytest -q
+```
+
+For verbose test output:
+
+```powershell
+python -m pytest -v
+```
+
+Check installed dependency consistency:
+
+```powershell
+python -m pip check
+```
+
+The project has reached **91 passing tests** at the time of this README update. Test results may change as the project evolves.
+
+## Local Data and Privacy
+
+The project is designed around local document processing, local vector storage, and local language-model inference.
+
+- Source documents are stored under `data/documents/`.
+- The persistent vector database is stored under `data/vector_db/`.
+- Ollama runs the configured language model locally.
+- `.gitignore` excludes local documents, vector database files, virtual environments, and environment files from version control.
+
+Local processing reduces the need to send document content to an external AI service, but it is not a guarantee of complete privacy. Review your environment, application configuration, and any future integrations before indexing sensitive information.
+
+**Important:** Do not commit private documents, credentials, `.env` files, or generated vector database files.
+
+## Current Status
+
+The application currently supports document ingestion and indexing, persistent semantic search, RAG-based question answering, source citations, and Document Library management, including source removal and re-indexing.
+
+Development is ongoing. Future improvements may include additional document formats, richer retrieval controls, improved evaluation of answer quality, and further UI refinements.
+
+## License
+
+A license has not yet been specified in this README. Add the appropriate license information once the repository's licensing choice is confirmed.
