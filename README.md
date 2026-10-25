@@ -1,4 +1,4 @@
-# PKS Engine — Personal Knowledge Search
+# PKS Engine - Personal Knowledge Search
 
 **PKS = Personal Knowledge Search**
 
