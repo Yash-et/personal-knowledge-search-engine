@@ -177,6 +177,65 @@ def render_document_library(vector_store):
                 st.error(
                     f"Could not remove the document from the index: {exc}"
                 )
+                
+    st.divider()
+    st.subheader("Refresh a document")
+
+    st.caption(
+        "If a file has changed, re-index it to replace its old "
+        "passages with the current content. The file must still "
+        "exist in data/documents/."
+    )
+
+    with st.form("reindex_document_form"):
+        reindex_source = st.selectbox(
+            "Document to re-index",
+            options=sources,
+            format_func=lambda item: (
+                f"{item['source']} "
+                f"({item['passage_count']} current passages)"
+            ),
+            key="document_to_reindex",
+        )
+
+        reindex_submitted = st.form_submit_button(
+            "Re-index document",
+            type="primary",
+        )
+
+    if reindex_submitted:
+        source_name = reindex_source["source"]
+        source_path = (DOCUMENTS_DIR / source_name).resolve()
+
+        # Only allow files directly inside the documents directory.
+        if source_path.parent != DOCUMENTS_DIR.resolve():
+            st.error("Invalid document path.")
+        elif not source_path.is_file():
+            st.error(
+                f"Cannot re-index '{source_name}': "
+                "the original file is missing."
+            )
+        else:
+            try:
+                with st.spinner(f"Re-indexing {source_name}..."):
+                    result = index_document(
+                        file_path=source_path,
+                        embedding_model=get_embedding_model(),
+                        vector_store=vector_store,
+                    )
+
+                st.session_state["library_notice"] = (
+                    f"Re-indexed '{source_name}': "
+                    f"{result['chunks_stored']} passages stored. "
+                    "Previous passages for this source were replaced."
+                )
+                st.rerun()
+
+            except Exception as exc:
+                st.error(
+                    f"Could not re-index '{source_name}': {exc}"
+                )
+
 
 def main():
     st.title("📚 Personal Knowledge Search")
