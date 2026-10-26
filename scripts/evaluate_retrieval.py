@@ -1,7 +1,6 @@
 import argparse
 import json
 import sys
-import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -11,10 +10,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.embeddings.embedding_model import LocalEmbeddingModel
 from src.evaluation.retrieval_evaluator import evaluate_retrieval
 from src.storage.vector_store import VectorStore
-
 DEFAULT_DATASET = (
     PROJECT_ROOT / "tests" / "fixtures" / "retrieval_eval_dataset.json"
 )
+EVALUATION_DB_DIR = PROJECT_ROOT / "data" / "evaluation_db"
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -61,48 +60,45 @@ def main() -> int:
     ]
 
     print(f"Preparing {len(chunks)} benchmark passages...")
-
     embeddings = embedding_model.embed_texts(
         [chunk["text"] for chunk in chunks]
     )
 
-    # Keep evaluation vectors isolated from the application's real database.
-    with tempfile.TemporaryDirectory(prefix="pks_retrieval_eval_") as temp_dir:
-        vector_store = VectorStore(Path(temp_dir) / "vectors")
-        vector_store.add_chunks(chunks, embeddings)
+    # This database is isolated from the application's production database.
+    # Repeated runs upsert the same passages instead of duplicating them.
+    vector_store = VectorStore(EVALUATION_DB_DIR)
+    vector_store.add_chunks(chunks, embeddings)
 
-        report = evaluate_retrieval(
-            dataset_path=args.dataset,
-            embedding_model=embedding_model,
-            vector_store=vector_store,
-            k=args.k,
-        )
+    report = evaluate_retrieval(
+        dataset_path=args.dataset,
+        embedding_model=embedding_model,
+        vector_store=vector_store,
+        k=args.k,
+    )
 
-        print("\nRetrieval Evaluation Report")
-        print("=" * 60)
-        print(f"Dataset:       {args.dataset}")
-        print(f"Queries:       {report['query_count']}")
-        print(f"Metric cutoff: k={report['k']}")
-        print(f"Recall@{args.k}:      {report['recall_at_k']:.3f}")
-        print(f"MRR:           {report['mrr']:.3f}")
+    print("\nRetrieval Evaluation Report")
+    print("=" * 60)
+    print(f"Dataset:       {args.dataset}")
+    print(f"Queries:       {report['query_count']}")
+    print(f"Metric cutoff: k={report['k']}")
+    print(f"Recall@{args.k}:      {report['recall_at_k']:.3f}")
+    print(f"MRR:           {report['mrr']:.3f}")
 
-        print("\nPer-query results")
-        print("-" * 60)
+    print("\nPer-query results")
+    print("-" * 60)
 
-        for index, result in enumerate(report["results"], start=1):
-            retrieved = result["retrieved_ids"]
-            relevant = set(result["relevant_ids"])
-            found = set(retrieved) & relevant
-            missed = relevant - set(retrieved)
+    for index, result in enumerate(report["results"], start=1):
+        retrieved = result["retrieved_ids"]
+        relevant = set(result["relevant_ids"])
+        missed = relevant - set(retrieved)
 
-            print(f"\n{index}. {result['query']}")
-            print(f"   Retrieved: {retrieved}")
-            print(f"   Relevant:  {result['relevant_ids']}")
-            print(f"   Recall@{args.k}:  {result['recall_at_k']:.3f}")
-            print(f"   Missed:    {sorted(missed) if missed else 'None'}")
+        print(f"\n{index}. {result['query']}")
+        print(f"   Retrieved: {retrieved}")
+        print(f"   Relevant:  {result['relevant_ids']}")
+        print(f"   Recall@{args.k}:  {result['recall_at_k']:.3f}")
+        print(f"   Missed:    {sorted(missed) if missed else 'None'}")
 
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
