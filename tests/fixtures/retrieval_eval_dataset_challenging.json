@@ -1,0 +1,108 @@
+{
+  "documents": [
+    {
+      "id": "python",
+      "source": "python_notes.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "Python is a programming language used for software development, scripting, and automation."
+    },
+    {
+      "id": "automation",
+      "source": "automation_guide.txt",
+      "page_number": 2,
+      "chunk_id": 0,
+      "text": "Automation scripts reduce repetitive manual work by executing routine tasks consistently."
+    },
+    {
+      "id": "ocean",
+      "source": "ocean_facts.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "The Pacific Ocean is the largest and deepest ocean on Earth."
+    },
+    {
+      "id": "machine-learning",
+      "source": "machine_learning.txt",
+      "page_number": 3,
+      "chunk_id": 0,
+      "text": "Machine learning uses data to train models that make predictions and identify patterns."
+    },
+    {
+      "id": "data-analysis",
+      "source": "data_analysis.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "Data analysis involves examining and interpreting information to discover trends, relationships, and useful insights."
+    },
+    {
+      "id": "rainfall",
+      "source": "weather.txt",
+      "page_number": 2,
+      "chunk_id": 0,
+      "text": "Weather forecasts estimate rainfall, temperature, wind, and sunshine."
+    },
+    {
+      "id": "climate",
+      "source": "climate_notes.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "Climate describes long-term weather patterns, including typical rainfall and temperature across a region."
+    },
+    {
+      "id": "security",
+      "source": "security_notes.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "Security logs record authentication attempts, failed logins, and suspicious activity."
+    },
+    {
+      "id": "audit",
+      "source": "audit_logging.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "Audit trails help investigators review user actions, access events, and changes made within a system."
+    },
+    {
+      "id": "password-policy",
+      "source": "password_policy.txt",
+      "page_number": 1,
+      "chunk_id": 0,
+      "text": "Password policies define requirements for password length, complexity, expiration, and account protection."
+    }
+  ],
+  "queries": [
+    {
+      "query": "Which programming language can help developers automate repetitive tasks?",
+      "relevant_ids": ["python", "automation"]
+    },
+    {
+      "query": "What language is commonly used to write scripts for software development?",
+      "relevant_ids": ["python"]
+    },
+    {
+      "query": "Which ocean has the greatest size and depth?",
+      "relevant_ids": ["ocean"]
+    },
+    {
+      "query": "How do computer systems learn from examples and recognize patterns?",
+      "relevant_ids": ["machine-learning"]
+    },
+    {
+      "query": "How can information be examined to uncover trends and relationships?",
+      "relevant_ids": ["data-analysis"]
+    },
+    {
+      "query": "What weather conditions might a forecast predict, especially precipitation?",
+      "relevant_ids": ["rainfall", "climate"]
+    },
+    {
+      "query": "How can administrators investigate repeated unsuccessful attempts to sign in?",
+      "relevant_ids": ["security"]
+    },
+    {
+      "query": "Where can investigators find records of user access and actions in a system?",
+      "relevant_ids": ["audit", "security"]
+    }
+  ]
+}
