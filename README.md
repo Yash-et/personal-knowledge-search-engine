@@ -209,18 +209,27 @@ personal-knowledge-search-engine/
 ├── .streamlit/
 │   └── config.toml
 ├── data/
-│   ├── documents/       # Local source documents
-│   └── vector_db/       # Local persistent vector database
+│   ├── documents/              # Local source documents
+│   ├── vector_db/              # Application vector database
+│   └── evaluation_db/          # Benchmark vector database
+├── scripts/
+│   └── evaluate_retrieval.py
 ├── src/
-│   ├── ingestion/       # Document loading and text extraction
-│   ├── chunking/        # Text chunking
-│   ├── embeddings/      # Embedding model integration
-│   ├── storage/         # ChromaDB operations
-│   ├── indexing/        # Document indexing pipeline
-│   ├── search/          # Semantic retrieval
-│   ├── rag/             # RAG answer generation
-│   └── ui_helpers.py    # Shared UI helpers
-└── tests/               # Automated tests
+│   ├── evaluation/             # Retrieval metrics and evaluation
+│   ├── ingestion/
+│   ├── chunking/
+│   ├── embeddings/
+│   ├── storage/
+│   ├── indexing/
+│   ├── search/
+│   ├── rag/
+│   └── ui_helpers.py
+└── tests/
+    ├── fixtures/
+    │   ├── retrieval_eval_dataset.json
+    │   └── retrieval_eval_dataset_challenging.json
+    ├── test_retrieval_metrics.py
+    └── test_retrieval_evaluator.py
 ```
 
 The `data/` directories are used for local application data. They are not intended to contain personal documents or generated vector database files in the public Git repository.
@@ -245,7 +254,56 @@ Check installed dependency consistency:
 python -m pip check
 ```
 
-The project has reached **91 passing tests** at the time of this README update. Test results may change as the project evolves.
+The latest verified test run completed with **109 passing tests**. Test results may change as the project evolves.
+
+## Retrieval Evaluation
+
+The project includes a retrieval evaluation CLI for measuring semantic search performance against a labeled JSON dataset.
+
+The evaluation code is located in `src/evaluation/`, and the command-line entry point is `scripts/evaluate_retrieval.py`.
+
+### Metrics
+
+- **Recall@k:** Measures the proportion of known relevant passages retrieved within the top *k* results.
+- **Mean Reciprocal Rank (MRR):** Measures how highly the first relevant result is ranked across evaluation queries.
+
+Recall@k does not penalize irrelevant passages returned alongside relevant ones, so it should not be interpreted as a precision metric.
+
+### Run the evaluation
+
+Activate the project's Python virtual environment and run these commands from the repository root:
+
+```powershell
+python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset.json --k 3
+```
+
+Run the more challenging benchmark:
+
+```powershell
+python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset_challenging.json --k 1
+python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset_challenging.json --k 3
+```
+
+The challenging dataset contains 10 benchmark passages and 8 queries, including paraphrased questions and queries with multiple relevant passages.
+
+### Challenging benchmark results
+
+Observed results from the local embedding model:
+
+| Metric | k = 1 | k = 3 |
+|---|---:|---:|
+| Recall@k | 0.812 | 1.000 |
+| MRR | 1.000 | 1.000 |
+
+At k = 1, some queries have multiple relevant passages, so retrieving only one of them results in less than 100% recall. At k = 3, all labeled relevant passages were retrieved within the top three results for this dataset.
+
+These results are a small, synthetic benchmark intended to validate retrieval behavior and evaluation tooling. They do not establish general retrieval quality across arbitrary documents or real-world queries. Results may vary with changes to the dataset, embedding model, indexed passages, or retrieval implementation.
+
+### Evaluation data
+
+The benchmark datasets are stored in `tests/fixtures/`. Evaluation uses a separate persistent vector database under `data/evaluation_db/`, distinct from the application's document index.
+
+When changing a benchmark dataset, ensure that the evaluation index contains only the intended benchmark passages. Persistent indexes may retain passages from earlier runs if they are not explicitly removed or reset.
 
 ## Local Data and Privacy
 
