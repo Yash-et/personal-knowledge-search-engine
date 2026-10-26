@@ -16,6 +16,10 @@ The project combines document processing, local embeddings, persistent vector st
 
 ![PKS Engine — Semantic Search](https://github.com/user-attachments/assets/6a171ede-2564-4084-ad09-3a52db96fcf4)
 
+### Document Library
+
+![PKS Engine - Document Library](https://github.com/user-attachments/assets/dc9d1180-ef77-4bca-9aae-eb8799322a10)
+
 ## Features
 
 - **Document ingestion:** Load supported PDF, TXT, and Markdown documents.
