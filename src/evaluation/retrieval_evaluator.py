@@ -28,9 +28,17 @@ def evaluate_retrieval(
         raise ValueError("Evaluation dataset must contain queries.")
 
     id_by_metadata = {}
-
+    seen_document_ids = set()
     for document in documents:
         document_id = document["id"]
+
+        if document_id in seen_document_ids:
+            raise ValueError(
+                f"Duplicate document ID in evaluation dataset: {document_id}"
+            )
+
+        seen_document_ids.add(document_id)
+
         metadata_key = (
             document["source"],
             document["page_number"],

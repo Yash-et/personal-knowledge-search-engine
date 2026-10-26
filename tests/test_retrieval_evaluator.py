@@ -103,3 +103,71 @@ def test_evaluator_rejects_dataset_without_queries(
 
     with pytest.raises(ValueError, match="queries"):
         evaluate_retrieval(no_queries, model, store)
+
+def test_evaluator_rejects_duplicate_document_ids(
+    tmp_path, evaluation_setup
+):
+    dataset_path, model, store = evaluation_setup
+
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    dataset["documents"][1]["id"] = dataset["documents"][0]["id"]
+
+    duplicate_ids_path = tmp_path / "duplicate_ids.json"
+    duplicate_ids_path.write_text(
+        json.dumps(dataset),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Duplicate document ID"):
+        evaluate_retrieval(
+            duplicate_ids_path,
+            model,
+            store,
+            k=3,
+        )
+
+def test_evaluator_rejects_duplicate_document_metadata(
+    tmp_path, evaluation_setup
+):
+    dataset_path, model, store = evaluation_setup
+
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    dataset["documents"][1]["source"] = dataset["documents"][0]["source"]
+    dataset["documents"][1]["page_number"] = dataset["documents"][0]["page_number"]
+    dataset["documents"][1]["chunk_id"] = dataset["documents"][0]["chunk_id"]
+
+    duplicate_metadata_path = tmp_path / "duplicate_metadata.json"
+    duplicate_metadata_path.write_text(
+        json.dumps(dataset),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Duplicate document metadata"):
+        evaluate_retrieval(
+            duplicate_metadata_path,
+            model,
+            store,
+            k=3,
+        )
+
+def test_evaluator_rejects_unknown_relevant_document_ids(
+    tmp_path, evaluation_setup
+):
+    dataset_path, model, store = evaluation_setup
+
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    dataset["queries"][0]["relevant_ids"] = ["missing-document"]
+
+    unknown_id_path = tmp_path / "unknown_relevant_id.json"
+    unknown_id_path.write_text(
+        json.dumps(dataset),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unknown relevant document IDs"):
+        evaluate_retrieval(
+            unknown_id_path,
+            model,
+            store,
+            k=3,
+        )
