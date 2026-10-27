@@ -330,4 +330,4 @@ Development is ongoing. Future improvements may include additional document form
 
 ## License
 
-A license has not yet been specified in this README. Add the appropriate license information once the repository's licensing choice is confirmed.
+A license has not yet been specified in this README. Will add the appropriate license information soon.
