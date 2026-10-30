@@ -27,6 +27,7 @@ The project combines document processing, local embeddings, persistent vector st
 - **Local embeddings:** Convert text into numerical representations using Sentence Transformers.
 - **Persistent vector storage:** Store and retrieve document passages with ChromaDB.
 - **Semantic search:** Find relevant passages based on meaning rather than exact keyword matches.
+- **Retrieval evaluation:** Evaluate semantic search using Recall@k, Precision@k, and Mean Reciprocal Rank (MRR).
 - **Ask Your Documents:** Generate answers using retrieved document passages through Ollama.
 - **Source citations:** Display source filenames and page information with generated answers when available.
 - **Document Library:** View indexed documents and their passage counts.
@@ -258,56 +259,77 @@ Check installed dependency consistency:
 python -m pip check
 ```
 
-The latest verified test run completed with **109 passing tests**. Test results may change as the project evolves.
+The latest verified test run completed with **116 passing tests**. Test results may change as the project evolves.
 
 ## Retrieval Evaluation
 
-The project includes a retrieval evaluation CLI for measuring semantic search performance against a labeled JSON dataset.
+## Retrieval Evaluation
+
+The project includes a retrieval evaluation CLI for measuring semantic search performance against labeled JSON datasets.
 
 The evaluation code is located in `src/evaluation/`, and the command-line entry point is `scripts/evaluate_retrieval.py`.
 
 ### Metrics
 
 - **Recall@k:** Measures the proportion of known relevant passages retrieved within the top *k* results.
+- **Precision@k:** Measures the proportion of the top *k* results that are relevant.
 - **Mean Reciprocal Rank (MRR):** Measures how highly the first relevant result is ranked across evaluation queries.
 
-Recall@k does not penalize irrelevant passages returned alongside relevant ones, so it should not be interpreted as a precision metric.
+Recall@k and Precision@k measure different aspects of retrieval quality. Recall focuses on finding relevant passages, while Precision focuses on avoiding irrelevant results.
 
 ### Run the evaluation
 
-Activate the project's Python virtual environment and run these commands from the repository root:
+Activate the project's Python virtual environment and run these commands from the repository root.
+
+**Basic benchmark:**
 
 ```powershell
 python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset.json --k 3
 ```
 
-Run the more challenging benchmark:
+**Challenging benchmark:**
 
 ```powershell
 python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset_challenging.json --k 1
+
 python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset_challenging.json --k 3
 ```
 
 The challenging dataset contains 10 benchmark passages and 8 queries, including paraphrased questions and queries with multiple relevant passages.
 
-### Challenging benchmark results
+### Benchmark results
 
 Observed results from the local embedding model:
+
+**Basic dataset**
+
+| Metric | k = 3 |
+|---|---:|
+| Recall@k | 1.000 |
+| Precision@k | 0.333 |
+| MRR | 1.000 |
+
+**Challenging dataset**
 
 | Metric | k = 1 | k = 3 |
 |---|---:|---:|
 | Recall@k | 0.812 | 1.000 |
+| Precision@k | 1.000 | 0.458 |
 | MRR | 1.000 | 1.000 |
 
-At k = 1, some queries have multiple relevant passages, so retrieving only one of them results in less than 100% recall. At k = 3, all labeled relevant passages were retrieved within the top three results for this dataset.
+At k = 1, every query retrieves a relevant passage as its first result, resulting in Precision@1 and MRR of 1.000. However, some queries have multiple relevant passages, so retrieving only one of them results in less than 100% recall.
 
-These results are a small, synthetic benchmark intended to validate retrieval behavior and evaluation tooling. They do not establish general retrieval quality across arbitrary documents or real-world queries. Results may vary with changes to the dataset, embedding model, indexed passages, or retrieval implementation.
+At k = 3, all labeled relevant passages are retrieved within the top three results for the challenging dataset. Precision@3 is lower because some retrieved passages are not labeled as relevant.
+
+These results are based on small, synthetic benchmark datasets intended to validate retrieval behavior and evaluation tooling. They do not establish general retrieval quality across arbitrary documents or real-world queries. Results may vary with changes to the dataset, embedding model, indexed passages, or retrieval implementation.
 
 ### Evaluation data
 
-The benchmark datasets are stored in `tests/fixtures/`. Evaluation uses a separate persistent vector database under `data/evaluation_db/`, distinct from the application's document index.
+The benchmark datasets are stored in `tests/fixtures/`. Evaluation uses a separate vector database under `data/evaluation_db/`, distinct from the application's document index.
 
-When changing a benchmark dataset, ensure that the evaluation index contains only the intended benchmark passages. Persistent indexes may retain passages from earlier runs if they are not explicitly removed or reset.
+Each evaluation run creates an isolated collection for its benchmark passages and removes that collection after evaluation.
+
+When changing a benchmark dataset, ensure that the evaluation index contains only the intended benchmark passages.
 
 ## Local Data and Privacy
 
