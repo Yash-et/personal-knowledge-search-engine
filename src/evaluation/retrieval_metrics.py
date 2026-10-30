@@ -48,3 +48,20 @@ def mean_reciprocal_rank(
     ]
 
     return sum(scores) / len(scores)
+
+def precision_at_k(
+    retrieved_ids: list[str],
+    relevant_ids: set[str],
+    k: int,
+) -> float:
+    """Return the fraction of the top k results that are relevant."""
+    if k <= 0:
+        raise ValueError("k must be greater than zero.")
+
+    if not relevant_ids:
+        raise ValueError("relevant_ids must not be empty.")
+
+    retrieved_top_k = retrieved_ids[:k]
+    relevant_retrieved = set(retrieved_top_k) & relevant_ids
+
+    return len(relevant_retrieved) / k

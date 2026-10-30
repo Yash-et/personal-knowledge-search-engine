@@ -89,6 +89,7 @@ def main() -> int:
     print(f"Queries:       {report['query_count']}")
     print(f"Metric cutoff: k={report['k']}")
     print(f"Recall@{args.k}:      {report['recall_at_k']:.3f}")
+    print(f"Precision@{args.k}:   {report['precision_at_k']:.3f}")
     print(f"MRR:           {report['mrr']:.3f}")
 
     print("\nPer-query results")
@@ -102,7 +103,8 @@ def main() -> int:
         print(f"\n{index}. {result['query']}")
         print(f"   Retrieved: {retrieved}")
         print(f"   Relevant:  {result['relevant_ids']}")
-        print(f"   Recall@{args.k}:  {result['recall_at_k']:.3f}")
+        print(f"   Recall@{args.k}:     {result['recall_at_k']:.3f}")
+        print(f"   Precision@{args.k}:  {result['precision_at_k']:.3f}")
         print(f"   Missed:    {sorted(missed) if missed else 'None'}")
 
     return 0

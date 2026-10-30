@@ -1,4 +1,5 @@
 import pytest
+from src.evaluation.retrieval_metrics import precision_at_k
 from src.evaluation.retrieval_metrics import (
     mean_reciprocal_rank,
     reciprocal_rank,
@@ -65,3 +66,38 @@ def test_mean_reciprocal_rank_rejects_empty_evaluation():
 def test_mean_reciprocal_rank_rejects_mismatched_inputs():
     with pytest.raises(ValueError, match="corresponding"):
         mean_reciprocal_rank([["doc-a"]], [])
+
+def test_recall_at_k_does_not_double_count_duplicate_results():
+    retrieved = ["doc-a", "doc-a", "doc-b"]
+    relevant = {"doc-a", "doc-b", "doc-c"}
+
+    assert recall_at_k(retrieved, relevant, k=3) == pytest.approx(2 / 3)
+
+def test_reciprocal_rank_uses_first_occurrence_of_relevant_result():
+    retrieved = ["irrelevant", "doc-a", "doc-a"]
+    relevant = {"doc-a"}
+
+    assert reciprocal_rank(retrieved, relevant) == pytest.approx(0.5)
+
+def test_precision_at_k_returns_fraction_of_relevant_results():
+    retrieved = ["doc-a", "doc-b", "doc-c"]
+    relevant = {"doc-a", "doc-c", "doc-d"}
+
+    assert precision_at_k(retrieved, relevant, k=2) == pytest.approx(0.5)
+    assert precision_at_k(retrieved, relevant, k=3) == pytest.approx(2 / 3)
+
+def test_precision_at_k_returns_zero_when_no_results_are_relevant():
+    assert precision_at_k(
+        ["doc-a", "doc-b"],
+        {"doc-c"},
+        k=2,
+    ) == 0.0
+
+@pytest.mark.parametrize("k", [0, -1])
+def test_precision_at_k_rejects_invalid_k(k):
+    with pytest.raises(ValueError, match="k"):
+        precision_at_k(["doc-a"], {"doc-a"}, k)
+
+def test_precision_at_k_rejects_empty_relevant_set():
+    with pytest.raises(ValueError, match="relevant_ids"):
+        precision_at_k(["doc-a"], set(), k=1)

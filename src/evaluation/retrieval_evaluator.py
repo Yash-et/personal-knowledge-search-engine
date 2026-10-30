@@ -2,10 +2,10 @@ import json
 from pathlib import Path
 from src.evaluation.retrieval_metrics import (
     mean_reciprocal_rank,
+    precision_at_k,
     recall_at_k,
 )
 from src.search.semantic_search import semantic_search
-
 def evaluate_retrieval(
     dataset_path: str | Path,
     embedding_model,
@@ -29,6 +29,7 @@ def evaluate_retrieval(
 
     id_by_metadata = {}
     seen_document_ids = set()
+
     for document in documents:
         document_id = document["id"]
 
@@ -63,9 +64,7 @@ def evaluate_retrieval(
         if not relevant_ids:
             raise ValueError("Each query must have relevant document IDs.")
 
-        unknown_ids = relevant_ids - {
-            document["id"] for document in documents
-        }
+        unknown_ids = relevant_ids - seen_document_ids
         if unknown_ids:
             raise ValueError(
                 f"Unknown relevant document IDs: {sorted(unknown_ids)}"
@@ -102,6 +101,9 @@ def evaluate_retrieval(
                 "retrieved_ids": ranked_ids,
                 "relevant_ids": sorted(relevant_ids),
                 "recall_at_k": recall_at_k(ranked_ids, relevant_ids, k),
+                "precision_at_k": precision_at_k(
+                    ranked_ids, relevant_ids, k
+                ),
             }
         )
 
@@ -110,6 +112,9 @@ def evaluate_retrieval(
         "query_count": len(queries),
         "recall_at_k": sum(
             result["recall_at_k"] for result in query_results
+        ) / len(query_results),
+        "precision_at_k": sum(
+            result["precision_at_k"] for result in query_results
         ) / len(query_results),
         "mrr": mean_reciprocal_rank(result_lists, relevant_sets),
         "results": query_results,
