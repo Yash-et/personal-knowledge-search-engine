@@ -263,8 +263,6 @@ The latest verified test run completed with **116 passing tests**. Test results 
 
 ## Retrieval Evaluation
 
-## Retrieval Evaluation
-
 The project includes a retrieval evaluation CLI for measuring semantic search performance against labeled JSON datasets.
 
 The evaluation code is located in `src/evaluation/`, and the command-line entry point is `scripts/evaluate_retrieval.py`.
