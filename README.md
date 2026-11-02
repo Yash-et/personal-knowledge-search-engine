@@ -350,9 +350,11 @@ Local processing reduces the need to send document content to an external AI ser
 
 ## Current Status
 
-The application currently supports document ingestion and indexing, persistent semantic search, RAG-based question answering, source citations, and Document Library management, including source removal and re-indexing.
+The core application is implemented and tested. It supports document ingestion and indexing, persistent semantic search, RAG-based question answering, source citations, and Document Library management, including source removal and re-indexing.
 
-Development is ongoing. Future improvements may include additional document formats, richer retrieval controls, improved evaluation of answer quality, and further UI refinements.
+The project also includes a retrieval evaluation framework with multiple cutoff support, benchmark datasets, and automated tests.
+
+Future improvements may include additional document formats, richer retrieval controls, and more comprehensive evaluation of answer quality.
 
 ## License
 
