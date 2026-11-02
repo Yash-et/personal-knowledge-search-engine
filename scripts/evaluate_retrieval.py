@@ -1,8 +1,9 @@
-import uuid
 import argparse
 import json
 import sys
+import uuid
 from pathlib import Path
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -10,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.embeddings.embedding_model import LocalEmbeddingModel
 from src.evaluation.retrieval_evaluator import evaluate_retrieval
 from src.storage.vector_store import VectorStore
+
 DEFAULT_DATASET = (
     PROJECT_ROOT / "tests" / "fixtures" / "retrieval_eval_dataset.json"
 )
@@ -25,22 +27,42 @@ def main() -> int:
         default=DEFAULT_DATASET,
         help="Path to the retrieval evaluation JSON dataset.",
     )
-    parser.add_argument(
+
+    cutoff_group = parser.add_mutually_exclusive_group()
+    cutoff_group.add_argument(
         "--k",
         type=int,
-        default=3,
-        help="Number of top results to evaluate (default: 3).",
+        help="Single retrieval cutoff (default: 3).",
     )
+    cutoff_group.add_argument(
+        "--ks",
+        type=int,
+        nargs="+",
+        help="Multiple retrieval cutoffs, for example: --ks 1 3 5.",
+    )
+
     args = parser.parse_args()
 
-    if args.k <= 0:
-        parser.error("--k must be greater than zero.")
+    if args.ks is not None:
+        if any(k <= 0 for k in args.ks):
+            parser.error("Every value supplied to --ks must be greater than zero.")
+        if len(set(args.ks)) != len(args.ks):
+            parser.error("--ks must not contain duplicate values.")
+        cutoffs = sorted(args.ks)
+    else:
+        single_k = 3 if args.k is None else args.k
+        if single_k <= 0:
+            parser.error("--k must be greater than zero.")
+        cutoffs = [single_k]
 
     if not args.dataset.is_file():
         parser.error(f"Dataset file not found: {args.dataset}")
 
-    with args.dataset.open("r", encoding="utf-8") as file:
-        dataset = json.load(file)
+    try:
+        with args.dataset.open("r", encoding="utf-8") as file:
+            dataset = json.load(file)
+    except json.JSONDecodeError as error:
+        parser.error(f"Invalid JSON dataset: {error}")
 
     documents = dataset.get("documents", [])
     if not documents:
@@ -64,7 +86,7 @@ def main() -> int:
         [chunk["text"] for chunk in chunks]
     )
 
-    # This database is isolated from the application's production database.
+    # Keep evaluation isolated from the application's production database.
     collection_name = f"retrieval_eval_{uuid.uuid4().hex}"
     vector_store = VectorStore(
         EVALUATION_DB_DIR,
@@ -78,7 +100,7 @@ def main() -> int:
             dataset_path=args.dataset,
             embedding_model=embedding_model,
             vector_store=vector_store,
-            k=args.k,
+            ks=cutoffs,
         )
     finally:
         vector_store.client.delete_collection(name=collection_name)
@@ -87,10 +109,22 @@ def main() -> int:
     print("=" * 60)
     print(f"Dataset:       {args.dataset}")
     print(f"Queries:       {report['query_count']}")
-    print(f"Metric cutoff: k={report['k']}")
-    print(f"Recall@{args.k}:      {report['recall_at_k']:.3f}")
-    print(f"Precision@{args.k}:   {report['precision_at_k']:.3f}")
-    print(f"MRR:           {report['mrr']:.3f}")
+    print(f"Cutoffs:       {', '.join(map(str, report['ks']))}")
+    print(f"MRR@{report['mrr_cutoff']}:          {report['mrr']:.3f}")
+
+    print("\nOverall metrics")
+    print("-" * 60)
+    print(f"{'Metric':<16}" + "".join(f"{'k=' + str(k):>10}" for k in report["ks"]))
+
+    for metric_name, metric_key in (
+        ("Recall@k", "recall_at_k"),
+        ("Precision@k", "precision_at_k"),
+    ):
+        values = "".join(
+            f"{report['metrics'][k][metric_key]:>10.3f}"
+            for k in report["ks"]
+        )
+        print(f"{metric_name:<16}{values}")
 
     print("\nPer-query results")
     print("-" * 60)
@@ -103,8 +137,15 @@ def main() -> int:
         print(f"\n{index}. {result['query']}")
         print(f"   Retrieved: {retrieved}")
         print(f"   Relevant:  {result['relevant_ids']}")
-        print(f"   Recall@{args.k}:     {result['recall_at_k']:.3f}")
-        print(f"   Precision@{args.k}:  {result['precision_at_k']:.3f}")
+
+        for cutoff in report["ks"]:
+            metrics = result["metrics"][cutoff]
+            print(
+                f"   k={cutoff}: "
+                f"Recall={metrics['recall_at_k']:.3f}, "
+                f"Precision={metrics['precision_at_k']:.3f}"
+            )
+
         print(f"   Missed:    {sorted(missed) if missed else 'None'}")
 
     return 0

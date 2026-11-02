@@ -259,7 +259,7 @@ Check installed dependency consistency:
 python -m pip check
 ```
 
-The latest verified test run completed with **116 passing tests**. Test results may change as the project evolves.
+The latest verified test run completed with **122 passing tests**. Test results may change as the project evolves.
 
 ## Retrieval Evaluation
 
@@ -267,59 +267,65 @@ The project includes a retrieval evaluation CLI for measuring semantic search pe
 
 The evaluation code is located in `src/evaluation/`, and the command-line entry point is `scripts/evaluate_retrieval.py`.
 
-### Metrics
+### Evaluation Metrics
 
-- **Recall@k:** Measures the proportion of known relevant passages retrieved within the top *k* results.
-- **Precision@k:** Measures the proportion of the top *k* results that are relevant.
-- **Mean Reciprocal Rank (MRR):** Measures how highly the first relevant result is ranked across evaluation queries.
+- **Recall@k:** Fraction of relevant documents retrieved within the top k results.
+- **Precision@k:** Fraction of the top k results that are relevant.
+- **MRR@k:** Mean reciprocal rank of the first relevant result, evaluated up to the maximum retrieval cutoff.
 
-Recall@k and Precision@k measure different aspects of retrieval quality. Recall focuses on finding relevant passages, while Precision focuses on avoiding irrelevant results.
+The evaluator supports multiple cutoffs in one execution. Documents are embedded once, and each query is retrieved once up to the largest requested cutoff.
 
-### Run the evaluation
+### Running Evaluation
 
-Activate the project's Python virtual environment and run these commands from the repository root.
-
-**Basic benchmark:**
+Run the default benchmark at multiple cutoffs:
 
 ```powershell
-python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset.json --k 3
+python scripts\evaluate_retrieval.py --ks 1 3 5
 ```
 
-**Challenging benchmark:**
+Run evaluation at a single cutoff:
 
 ```powershell
-python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset_challenging.json --k 1
-
-python scripts/evaluate_retrieval.py --dataset tests/fixtures/retrieval_eval_dataset_challenging.json --k 3
+python scripts\evaluate_retrieval.py --k 3
 ```
 
-The challenging dataset contains 10 benchmark passages and 8 queries, including paraphrased questions and queries with multiple relevant passages.
+Evaluate the challenging benchmark:
 
-### Benchmark results
+```powershell
+python scripts\evaluate_retrieval.py --dataset tests\fixtures\retrieval_eval_dataset_challenging.json --ks 1 3 5
+```
 
-Observed results from the local embedding model:
+The evaluator uses an isolated database at `data/evaluation_db/` and does not modify the application's production vector database.
 
-**Basic dataset**
+### Benchmark Results
 
-| Metric | k = 3 |
-|---|---:|
-| Recall@k | 1.000 |
-| Precision@k | 0.333 |
-| MRR | 1.000 |
+**Basic benchmark**
 
-**Challenging dataset**
+- 5 queries
+- 5 benchmark passages
 
-| Metric | k = 1 | k = 3 |
-|---|---:|---:|
-| Recall@k | 0.812 | 1.000 |
-| Precision@k | 1.000 | 0.458 |
-| MRR | 1.000 | 1.000 |
+| Metric | k=1 | k=3 | k=5 |
+|---|---:|---:|---:|
+| Recall@k | 1.000 | 1.000 | 1.000 |
+| Precision@k | 1.000 | 0.333 | 0.200 |
 
-At k = 1, every query retrieves a relevant passage as its first result, resulting in Precision@1 and MRR of 1.000. However, some queries have multiple relevant passages, so retrieving only one of them results in less than 100% recall.
+MRR@5: **1.000**
 
-At k = 3, all labeled relevant passages are retrieved within the top three results for the challenging dataset. Precision@3 is lower because some retrieved passages are not labeled as relevant.
+**Challenging benchmark**
 
-These results are based on small, synthetic benchmark datasets intended to validate retrieval behavior and evaluation tooling. They do not establish general retrieval quality across arbitrary documents or real-world queries. Results may vary with changes to the dataset, embedding model, indexed passages, or retrieval implementation.
+- 8 queries
+- 10 benchmark passages
+
+| Metric | k=1 | k=3 | k=5 |
+|---|---:|---:|---:|
+| Recall@k | 0.812 | 1.000 | 1.000 |
+| Precision@k | 1.000 | 0.458 | 0.275 |
+
+MRR@5: **1.000**
+
+The challenging benchmark demonstrates the trade-off between retrieval coverage and precision. At k=1, some queries with multiple relevant passages retrieve only one of them. At k=3, all labeled relevant passages are retrieved, although some irrelevant passages are also included.
+
+These results are based on small, synthetic evaluation datasets and should not be interpreted as proof of general retrieval performance.
 
 ### Evaluation data
 

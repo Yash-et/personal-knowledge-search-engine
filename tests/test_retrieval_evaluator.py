@@ -175,3 +175,73 @@ def test_evaluator_rejects_unknown_relevant_document_ids(
             store,
             k=3,
         )
+
+def test_evaluator_supports_multiple_cutoffs(evaluation_setup):
+    dataset_path, model, store = evaluation_setup
+
+    report = evaluate_retrieval(
+        dataset_path=dataset_path,
+        embedding_model=model,
+        vector_store=store,
+        ks=[1, 3, 5],
+    )
+
+    assert report["ks"] == [1, 3, 5]
+    assert report["k"] == 5
+    assert report["mrr_cutoff"] == 5
+
+    for cutoff in [1, 3, 5]:
+        assert 0.0 <= report["metrics"][cutoff]["recall_at_k"] <= 1.0
+        assert 0.0 <= report["metrics"][cutoff]["precision_at_k"] <= 1.0
+
+    for result in report["results"]:
+        for cutoff in [1, 3, 5]:
+            assert 0.0 <= result["metrics"][cutoff]["recall_at_k"] <= 1.0
+            assert 0.0 <= result["metrics"][cutoff]["precision_at_k"] <= 1.0
+
+    assert report["recall_at_k"] == report["metrics"][5]["recall_at_k"]
+    assert report["precision_at_k"] == report["metrics"][5]["precision_at_k"]
+
+def test_evaluator_retrieves_only_once_per_query(
+    evaluation_setup, monkeypatch
+):
+    import src.evaluation.retrieval_evaluator as evaluator_module
+
+    dataset_path, model, store = evaluation_setup
+    original_search = evaluator_module.semantic_search
+    calls = []
+
+    def counted_search(*args, **kwargs):
+        calls.append(kwargs["top_k"])
+        return original_search(*args, **kwargs)
+
+    monkeypatch.setattr(
+        evaluator_module, "semantic_search", counted_search
+    )
+
+    report = evaluate_retrieval(
+        dataset_path=dataset_path,
+        embedding_model=model,
+        vector_store=store,
+        ks=[1, 3, 5],
+    )
+
+    assert len(calls) == report["query_count"]
+    assert all(top_k == 5 for top_k in calls)
+
+def test_evaluator_rejects_empty_cutoff_list(evaluation_setup):
+    dataset_path, model, store = evaluation_setup
+
+    with pytest.raises(ValueError, match="at least one cutoff"):
+        evaluate_retrieval(
+            dataset_path, model, store, ks=[]
+        )
+
+@pytest.mark.parametrize("ks", [[0, 3], [-1, 3], [1, 1, 3]])
+def test_evaluator_rejects_invalid_cutoffs(evaluation_setup, ks):
+    dataset_path, model, store = evaluation_setup
+
+    with pytest.raises(ValueError):
+        evaluate_retrieval(
+            dataset_path, model, store, ks=ks
+        )
