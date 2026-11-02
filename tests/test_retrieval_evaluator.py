@@ -48,6 +48,7 @@ def test_evaluator_returns_expected_report_structure(evaluation_setup):
     assert 0.0 <= report["recall_at_k"] <= 1.0
     assert 0.0 <= report["mrr"] <= 1.0
     assert len(report["results"]) == 5
+    assert 0.0 <= report["precision_at_k"] <= 1.0
 
 def test_evaluator_retrieves_relevant_passages(evaluation_setup):
     dataset_path, model, store = evaluation_setup
@@ -61,9 +62,12 @@ def test_evaluator_retrieves_relevant_passages(evaluation_setup):
 
     assert report["recall_at_k"] == pytest.approx(1.0)
     assert report["mrr"] == pytest.approx(1.0)
-
+    assert report["precision_at_k"] == pytest.approx(1 / 3)
+    
     for result in report["results"]:
         assert result["relevant_ids"][0] in result["retrieved_ids"]
+        assert 0.0 <= result["precision_at_k"] <= 1.0
+        assert result["precision_at_k"] == pytest.approx(1 / 3)
 
 def test_evaluator_rejects_dataset_without_documents(
     tmp_path, evaluation_setup
